@@ -63,9 +63,11 @@ class Net1(nn.Module):
 
         return out
     
+print("Preparing model")
 model = Net1().to(device=device)
 model.load_state_dict(torch.load(parser.params.path))
 
+print("Preprocessing Face")
 img = torchvision.io.read_image(parser.img_path)
 image = face_recognition.load_image_file(parser.img_path)
 face_locations = face_recognition.face_locations(image)
@@ -91,7 +93,4 @@ model.eval()
 prediction = model(img_face).item()
 prediction = prediction if prediction >= 0 else 0
 
-print("Prediction %d" %(prediction))
-
-print("Preprocessing Face")
 print("Prediction: %d" %(prediction))
