@@ -5,7 +5,9 @@ from torchvision import transforms
 import numpy as np
 import os
 import face_recognition
-import argparser
+import argparse
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 parser = argparse.ArgumentParser(description="Predict age given a face")
 parser.add_argument('img_path', type=str, help="path to the image")
@@ -65,13 +67,13 @@ class Net1(nn.Module):
     
 print("Preparing model")
 model = Net1().to(device=device)
-model.load_state_dict(torch.load(parser.params.path))
+model.load_state_dict(torch.load(args.params_path, map_location=device))
 
-print("Preprocessing Face")
-img = torchvision.io.read_image(parser.img_path)
-image = face_recognition.load_image_file(parser.img_path)
-face_locations = face_recognition.face_locations(image)
-if len(face_locations) == 0:
+print("Preprocessing face")
+img = torchvision.io.read_image(args.img_path)
+image = face_recognition.load_image_file(args.img_path)
+face_locations = face_recognition.face_locations(image)[0]
+if not (face_locations):
     raise Exception("No face detected")
 if face_locations[0] > face_locations[2]:
     x1, x2 = face_locations[2], face_locations[0]
@@ -83,8 +85,8 @@ if face_locations[1] > face_locations[3]:
 else:
     y1, y2 = face_locations[1], face_locations[3]
     
-img_face = image[:, x1:x2, y1:y2]
-img_face = img_face.unsqueeze(0).to(device=device, dtype=torch.float)
+img_face = img[:, x1:x2, y1:y2]
+img_face = img_face.to(device=device, dtype=torch.float)
 pipe = transforms.Compose([transforms.Grayscale(1),
                            transforms.Resize((180, 180))])
 img_face = pipe(img_face).unsqueeze(0)
@@ -93,4 +95,4 @@ model.eval()
 prediction = model(img_face).item()
 prediction = prediction if prediction >= 0 else 0
 
-print("Prediction: %d" %(prediction))
+print("Prediction: %d years old" %(prediction))
